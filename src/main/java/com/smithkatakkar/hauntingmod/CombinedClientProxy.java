@@ -8,7 +8,7 @@ public class CombinedClientProxy implements CommonProxy {
 	@Override
 	public void init_resources() {
 		RenderingRegistry.registerEntityRenderingHandler(EntityGhost.class,
-				new RendererGhost(Minecraft.getMinecraft().getRenderManager(), new ModelPig(), 0.05F)
+				new RendererGhost(Minecraft.getMinecraft().getRenderManager(), new ModelPig(), 0.7F)
 		);
 	}
 }
