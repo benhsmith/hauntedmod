@@ -40,13 +40,13 @@ public class EntityAIScareTheLiving extends EntityAIBase {
 	public boolean shouldExecute() {
         EntityLiving closestEntity = (EntityLiving)this.ghost.worldObj.findNearestEntityWithinAABB(
         	ghost.getDeceasedEntity().getClass(), ghost.getEntityBoundingBox().expand(
-        		(double)30.0D, 30.0D, (double)2.0D), ghost);
+        		60.0D, 60.0D, 10.0D), ghost);
         
         if (closestEntity != null) {
         	Class avoidClass = ghost.getDeceasedEntity().getClass();
         	if (avoidClass.isInstance(closestEntity)) {
 	        	closestEntity.tasks.addTask(20, new EntityAIAvoidEntity((EntityCreature) closestEntity,
-	        		new AvoidPredicate(avoidClass), 30.0F, 1.33D, 1.33D));
+	        		new AvoidPredicate(avoidClass), 60.0F, 1.5D, 2.7D));
         	}
         }
         

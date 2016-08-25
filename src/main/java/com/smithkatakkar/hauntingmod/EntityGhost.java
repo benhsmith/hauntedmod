@@ -4,13 +4,17 @@ import io.netty.buffer.Unpooled;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import com.google.common.base.Function;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityAgeable;
+import net.minecraft.entity.EntityCreature;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
@@ -27,6 +31,9 @@ import net.minecraft.entity.ai.EntityAITempt;
 import net.minecraft.entity.ai.EntityAIWander;
 import net.minecraft.entity.ai.EntityAIWatchClosest;
 import net.minecraft.entity.ai.EntityLookHelper;
+import net.minecraft.entity.ai.RandomPositionGenerator;
+import net.minecraft.entity.monster.EntityMob;
+import net.minecraft.entity.monster.IMob;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.entity.passive.EntityTameable;
@@ -34,9 +41,14 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.pathfinding.PathEntity;
+import net.minecraft.pathfinding.PathNavigate;
 import net.minecraft.pathfinding.PathNavigateGround;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.network.internal.FMLMessage.EntitySpawnMessage;
@@ -45,29 +57,73 @@ import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-public class EntityGhost extends EntityTameable implements IEntityAdditionalSpawnData {
-	private class EntityAIJumpTo extends EntityAIBase {
-		static final float maxDist = 15.0f;
+public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData {
+	private class EntityAIFollow extends EntityAIBase {
+		static final float maxDist = 40.0f;
+		static final float minDist = 5.0f;
+		static final float walkSpeed = 2.0f;
 		EntityGhost ghost;
 		Entity follow;
 		
-		EntityAIJumpTo(EntityGhost ghost, Entity follow) {
+		EntityAIFollow(EntityGhost ghost, Entity follow) {
 			this.ghost = ghost;
 			this.follow = follow;
 		}
 
 		@Override
 		public boolean shouldExecute() {
-			if (ghost.getPositionVector().distanceTo(follow.getPositionVector()) > maxDist) {
-				ghost.setPosition(follow.posX+follow.width+2, follow.posY+follow.width+2, follow.posZ);
+			double dist = ghost.getPositionVector().distanceTo(follow.getPositionVector());
+			if (dist > maxDist && follow.onGround) {
+				ghost.posX = follow.posX+follow.width+2;
+				ghost.posY = follow.posY;
+				ghost.posZ = follow.posZ+follow.width+2;
+				ghost.setPosition(ghost.posX, ghost.posY, ghost.posZ);
+			} else if (dist > minDist && dist <= maxDist) {
+				return true;
 			}
 			
 			return false;
 		}
+		
+	    public boolean continueExecuting()
+	    {
+	        return !ghost.getNavigator().noPath() && ghost.getDistanceSqToEntity(follow) > (double)(this.maxDist * this.maxDist);
+	    }
+
+	    /**
+	     * Execute a one shot task or start executing a continuous task
+	     */
+	    public void startExecuting()
+	    {
+	        ((PathNavigateGround)ghost.getNavigator()).func_179690_a(false);
+	    }
+
+	    /**
+	     * Resets the task
+	     */
+	    public void resetTask()
+	    {
+	        ghost.getNavigator().clearPathEntity();
+	        ((PathNavigateGround)ghost.getNavigator()).func_179690_a(true);
+	    }
+	    
+	    public void updateTask()
+	    {
+	        ghost.getLookHelper().setLookPositionWithEntity(follow, 10.0F, (float)ghost.getVerticalFaceSpeed());
+
+	        if (!ghost.getNavigator().tryMoveToEntityLiving(follow, walkSpeed)) {
+				ghost.posX = follow.posX+follow.width+2;
+				ghost.posY = follow.posY;
+				ghost.posZ = follow.posZ+follow.width+2;
+				ghost.setPosition(ghost.posX, ghost.posY, ghost.posZ);	        	
+	        }
+	    }
 	}
 
 	private class EntityAvoidOtherGhosts extends EntityAIBase {
 		EntityGhost ghost;
+	    /** The PathEntity of our entity */
+	    private PathEntity entityPathEntity;
 		
 		EntityAvoidOtherGhosts(EntityGhost ghost) {
 			this.ghost = ghost;
@@ -76,29 +132,51 @@ public class EntityGhost extends EntityTameable implements IEntityAdditionalSpaw
 		
 		@Override
 		public boolean shouldExecute() {
-			List entities = ghost.worldObj.getEntitiesWithinAABB(getClass(), ghost.getEntityBoundingBox().expand(6.0D, 2.0D, 6.0D));
+			List entities = ghost.worldObj.getEntitiesWithinAABB(EntityGhost.class, ghost.getEntityBoundingBox().expand(0.5D, 0.5D, 0.5D));
 			
-			if (entities.size() > 0) {
-				ghost.posX = ghost.prevPosX;
-				ghost.posY = ghost.prevPosY;
-				ghost.posZ = ghost.prevPosZ;
+			if (entities.size() > 1) {
+				Entity otherGhost = null;
+				for(Iterator it = entities.iterator(); it.hasNext();) {
+					 Entity entity = (Entity) it.next();
+					 if (!entity.equals(ghost)) {
+						 otherGhost = ghost;
+						 break;
+					 }
+				}
+				Vec3 vec3 = RandomPositionGenerator.findRandomTargetBlockAwayFrom(ghost, 1, 1, new Vec3(otherGhost.posX, otherGhost.posY, otherGhost.posZ));
+				
+	            if (vec3 != null)
+	            {
+	                entityPathEntity = ghost.getNavigator().getPathToXYZ(vec3.xCoord, vec3.yCoord, vec3.zCoord);
+	                return entityPathEntity == null ? false : entityPathEntity.isDestinationSame(vec3);
+	            }            
 			}
 			
 			return false;
 		}
-	
+
+	    public void startExecuting()
+	    {
+	    	ghost.getNavigator().setPath(this.entityPathEntity, 1.0D);
+	    }
+
+		@Override
+		public boolean continueExecuting() {
+	        return !ghost.getNavigator().noPath();
+		}
 	}
 	
-	public static final int ticksToExist = 10000;
+	public static final int ticksToExist = 20000;
 	private EntityLiving deceasedEntity;
+	UUID haunteeUUID;
 	
 	public EntityGhost(World worldIn) {
 		super(worldIn);
         setSize(0.9F, 0.9F);
+        //noClip = true;
         ((PathNavigateGround)this.getNavigator()).func_179690_a(true);
 
-        //tasks.addTask(1, new EntityAvoidOtherGhosts(this));
-        tasks.addTask(2, new EntityAIFollowOwner(this, 1.0D, 5.0F, 10.0F));
+        tasks.addTask(1, new EntityAvoidOtherGhosts(this));
         tasks.addTask(3, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0f, 0.9f));
         tasks.addTask(4, new EntityAIScareTheLiving(this));
 	}
@@ -109,9 +187,9 @@ public class EntityGhost extends EntityTameable implements IEntityAdditionalSpaw
         this.getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.25D);
     }
 
-    public void setHauntee(Entity hauntee) {
-		setOwnerId(hauntee.getUniqueID().toString());
-        tasks.addTask(4, new EntityAIJumpTo(this, hauntee));   	
+    public void setHauntee(EntityLivingBase hauntee) {
+		this.setAttackTarget(hauntee);
+        tasks.addTask(4, new EntityAIFollow(this, hauntee));
     }
     
 	public void setDeceasedClass(Class<? extends EntityLiving> entity_class)
@@ -142,21 +220,28 @@ public class EntityGhost extends EntityTameable implements IEntityAdditionalSpaw
     	
     }
 
+    protected void func_180433_a(double p_180433_1_, boolean p_180433_3_, Block p_180433_4_, BlockPos p_180433_5_) {}
 
-	@Override
-	public EntityAgeable createChild(EntityAgeable ageable) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	public void onUpdate() {
 		super.onUpdate();
 		
+		if (haunteeUUID != null && getAttackTarget() == null) {
+			Entity entity = ((WorldServer)worldObj).getEntityFromUuid(haunteeUUID);
+			if (entity != null) {
+				setHauntee((EntityLivingBase)entity);
+			}
+		}
+		
 		deceasedEntity.onUpdate();
 		
+		//deceasedEntity.motionY *= 0.6D;
+		//motionY *= .06D;
+				
     	if (ticksExisted > ticksToExist)
-    		setDead();    	
-
+    		setDead();    
+    	
+    	isJumping = false;
+    	deceasedEntity.setJumping(false);
 	}
 	
     protected void despawnEntity() {
@@ -193,6 +278,12 @@ public class EntityGhost extends EntityTameable implements IEntityAdditionalSpaw
     {
         super.writeEntityToNBT(tagCompound);
 
+        if (getAttackTarget() != null) {
+        	tagCompound.setString("TargetUUID", getAttackTarget().getUniqueID().toString());
+	    } else {	
+        	tagCompound.setString("TargetUUID", "");
+	    }
+        
         if (deceasedEntity != null) {
         	tagCompound.setString("LivingClass", deceasedEntity.getClass().getCanonicalName());        	
         }
@@ -202,9 +293,12 @@ public class EntityGhost extends EntityTameable implements IEntityAdditionalSpaw
     {
         super.readEntityFromNBT(tagCompound);
         
-        if (getOwnerEntity() == null) {
+        haunteeUUID = UUID.fromString(tagCompound.getString("TargetUUID"));
+        
+        if (haunteeUUID == null) {
         	setDead();
         }
+        
         if (tagCompound.hasKey("LivingClass")) {
         	String className = tagCompound.getString("LivingClass");
         	try {
@@ -217,11 +311,13 @@ public class EntityGhost extends EntityTameable implements IEntityAdditionalSpaw
 
 	@Override
 	public void writeSpawnData(ByteBuf additionalData) {
-		if (getOwnerEntity() != null) {
-			additionalData.writeInt(getOwnerEntity().getEntityId());
+		/*
+		if (getAttackTarget() != null) {
+			additionalData.writeInt(getAttackTarget().getEntityId());
 		} else {
 			additionalData.writeInt(0);
 		}
+		*/
         ByteBuf tmpBuf = Unpooled.buffer();
         PacketBuffer pb = new PacketBuffer(tmpBuf);
         pb.writeString(deceasedEntity.getClass().getCanonicalName());
@@ -230,13 +326,13 @@ public class EntityGhost extends EntityTameable implements IEntityAdditionalSpaw
 
 	@Override
 	public void readSpawnData(ByteBuf additionalData) {
+		/*
 		EntityLivingBase target = (EntityLivingBase) worldObj.getEntityByID(additionalData.readInt());
         if (target == null) {
         	setDead();
         } else {
-        	setHauntee(target);
         }
-
+		 */
         String className = new PacketBuffer(additionalData).readStringFromBuffer(additionalData.readableBytes());
     	try {
     		setDeceasedClass((Class<? extends EntityLiving>)Class.forName(className));
@@ -244,4 +340,9 @@ public class EntityGhost extends EntityTameable implements IEntityAdditionalSpaw
 			FMLLog.info(className + " - failed to reload ghost class - " + e.getMessage());
 		}
    	}
+	
+	@Override
+    public boolean getCanSpawnHere() {
+		return true;
+	}
 }

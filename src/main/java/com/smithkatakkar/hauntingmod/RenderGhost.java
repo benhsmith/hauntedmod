@@ -1,8 +1,5 @@
 package com.smithkatakkar.hauntingmod;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.lwjgl.opengl.GL11;
 
 import net.minecraft.client.model.ModelBase;
@@ -20,13 +17,13 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class RendererGhost extends RenderLiving {
+public class RenderGhost extends RenderLiving {
 	private float red=0.75f;
 	private float green=0.75f;
-	private float blue=0.85f;
+	private float blue=1.0f;
 	private float alpha=0.70f;
 
-	public RendererGhost(RenderManager renderManager, ModelBase model, float f) {
+	public RenderGhost(RenderManager renderManager, ModelBase model, float f) {
 		super(renderManager, model, f);
 	}
 
