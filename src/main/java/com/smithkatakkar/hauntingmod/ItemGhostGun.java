@@ -13,11 +13,16 @@ public class ItemGhostGun extends Item {
 
     	setUnlocalizedName("ghost_gun");
         this.maxStackSize = 1;
-        this.setMaxDamage(384);
         this.setCreativeTab(CreativeTabs.tabCombat);
     }
-    
+
+    public void onPlayerStoppedUsing(ItemStack stack, World worldIn, EntityPlayer playerIn, int timeLeft) {
+
+    }
+
     public ItemStack onItemRightClick(ItemStack itemStackIn, World worldIn, EntityPlayer playerIn) {
+        playerIn.setItemInUse(itemStackIn, this.getMaxItemUseDuration(itemStackIn));
+
     	return itemStackIn;
     }  
 }

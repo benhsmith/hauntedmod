@@ -19,10 +19,10 @@ import org.junit.Test;
 
 public class DeathHookTest {
 
-   @Mocked World world;
-   @Mocked EntityPlayer player;
-   @Mocked EntityPig pig;
-   @Mocked EntityGhost ghost;
+    @Mocked World world;
+    @Mocked EntityPlayer player;
+    @Mocked EntityPig pig;
+    @Mocked EntityGhost ghost;
 	   
 	@Test
 	public void testEntityDeath() throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
