@@ -8,51 +8,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.base.Function;
-
 import net.minecraft.block.Block;
-import net.minecraft.client.multiplayer.WorldClient;
+
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityAgeable;
-import net.minecraft.entity.EntityCreature;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.EntityAIBase;
-import net.minecraft.entity.ai.EntityAIControlledByPlayer;
-import net.minecraft.entity.ai.EntityAIFollowOwner;
-import net.minecraft.entity.ai.EntityAIFollowParent;
-import net.minecraft.entity.ai.EntityAILookIdle;
-import net.minecraft.entity.ai.EntityAIMate;
-import net.minecraft.entity.ai.EntityAIMoveTowardsTarget;
-import net.minecraft.entity.ai.EntityAIPanic;
-import net.minecraft.entity.ai.EntityAISwimming;
-import net.minecraft.entity.ai.EntityAITempt;
-import net.minecraft.entity.ai.EntityAIWander;
 import net.minecraft.entity.ai.EntityAIWatchClosest;
-import net.minecraft.entity.ai.EntityLookHelper;
 import net.minecraft.entity.ai.RandomPositionGenerator;
 import net.minecraft.entity.monster.EntityMob;
-import net.minecraft.entity.monster.IMob;
-import net.minecraft.entity.passive.EntityAnimal;
-import net.minecraft.entity.passive.EntityPig;
-import net.minecraft.entity.passive.EntityTameable;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.pathfinding.PathEntity;
-import net.minecraft.pathfinding.PathNavigate;
-import net.minecraft.pathfinding.PathNavigateGround;
-import net.minecraft.util.BlockPos;
+import net.minecraft.pathfinding.Path;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
-import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.common.network.internal.FMLMessage.EntitySpawnMessage;
-import net.minecraftforge.fml.common.registry.EntityRegistry;
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -95,8 +70,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 	     */
 	    public void startExecuting()
 	    {
-	        ((PathNavigateGround)ghost.getNavigator()).func_179690_a(false);
-	    }
+		}
 
 	    /**
 	     * Resets the task
@@ -104,7 +78,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 	    public void resetTask()
 	    {
 	        ghost.getNavigator().clearPathEntity();
-	        ((PathNavigateGround)ghost.getNavigator()).func_179690_a(true);
+	        //((PathNavigateGround)ghost.getNavigator()).func_179690_a(true);
 	    }
 	    
 	    public void updateTask()
@@ -123,7 +97,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 	private class EntityAvoidOtherGhosts extends EntityAIBase {
 		EntityGhost ghost;
 	    /** The PathEntity of our entity */
-	    private PathEntity entityPathEntity;
+	    private Path entityPathEntity;
 		
 		EntityAvoidOtherGhosts(EntityGhost ghost) {
 			this.ghost = ghost;
@@ -143,7 +117,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 						 break;
 					 }
 				}
-				Vec3 vec3 = RandomPositionGenerator.findRandomTargetBlockAwayFrom(ghost, 1, 1, new Vec3(otherGhost.posX, otherGhost.posY, otherGhost.posZ));
+				Vec3d vec3 = RandomPositionGenerator.findRandomTargetBlockAwayFrom(ghost, 1, 1, new Vec3d(otherGhost.posX, otherGhost.posY, otherGhost.posZ));
 				
 	            if (vec3 != null)
 	            {
@@ -174,7 +148,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 		super(worldIn);
         setSize(0.9F, 0.9F);
         //noClip = true;
-        ((PathNavigateGround)this.getNavigator()).func_179690_a(true);
+        //((PathNavigateGround)this.getNavigator()).func_179690_a(true);
 
         tasks.addTask(1, new EntityAvoidOtherGhosts(this));
         tasks.addTask(3, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0f, 0.9f));
@@ -184,7 +158,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
     protected void applyEntityAttributes()
     {
         super.applyEntityAttributes();
-        this.getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.25D);
+        this.getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.25D);
     }
 
     public void setHauntee(EntityLivingBase hauntee) {
@@ -246,30 +220,28 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 	
     protected void despawnEntity() {
     }
-    
-    @SideOnly(Side.CLIENT)
-    public void func_180426_a(double p_180426_1_, double p_180426_3_, double p_180426_5_, float p_180426_7_, float p_180426_8_, int p_180426_9_, boolean p_180426_10_) {
-    	super.func_180426_a(p_180426_1_, p_180426_3_, p_180426_5_, p_180426_7_, p_180426_8_, p_180426_9_,  p_180426_10_);
-    	deceasedEntity.func_180426_a(p_180426_1_, p_180426_3_, p_180426_5_, p_180426_7_, p_180426_8_, p_180426_9_,  p_180426_10_);
-    }
 
     @SideOnly(Side.CLIENT)
+    @Override
     public void setVelocity(double x, double y, double z) {
     	super.setVelocity(x,y,z);
     	deceasedEntity.setVelocity(x,y,z);
     }
     
     @SideOnly(Side.CLIENT)
+    @Override
     public void setAngles(float yaw, float pitch) {
     	super.setAngles(yaw, pitch);
     	deceasedEntity.setAngles(yaw, pitch);
     }
 
+    @Override
     public float getSwingProgress(float progress) {
     	deceasedEntity.getSwingProgress(progress);
     	return super.getSwingProgress(progress);
     }
 
+    @Override
     public void setRotationYawHead(float rotation) {
     	deceasedEntity.setRotationYawHead(rotation);
     }

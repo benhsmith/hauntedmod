@@ -24,7 +24,9 @@ public class HauntingMod
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent e) {
-        GameRegistry.registerItem(itemGhostGun = new ItemGhostGun(), "ghost_gun");
+        int id =0;
+        EntityRegistry.registerModEntity(EntityGhost.class, "Ghost", id, this, 80, 1, true);//id is an internal mob id, you can start at 0 and continue adding them up.
+        id++;
 
         proxy.preInit();
     }
@@ -32,10 +34,6 @@ public class HauntingMod
     @EventHandler
     public void init(FMLInitializationEvent event)
     {
-    	int id =0;
-    	EntityRegistry.registerModEntity(EntityGhost.class, "Ghost", id, this, 80, 1, true);//id is an internal mob id, you can start at 0 and continue adding them up.
-        id++;
-              
         MinecraftForge.EVENT_BUS.register(new DeathHook());
 
         proxy.init_resources();

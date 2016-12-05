@@ -7,17 +7,13 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderLiving;
 import net.minecraft.client.renderer.entity.RenderManager;
-import net.minecraft.client.renderer.entity.RenderPig;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Vec3;
-import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class RenderGhost extends RenderLiving {
+public class RenderGhost extends RenderLiving<EntityGhost> {
 	private float red=0.75f;
 	private float green=0.75f;
 	private float blue=1.0f;
@@ -28,7 +24,7 @@ public class RenderGhost extends RenderLiving {
 	}
 
 	@Override
-	public void doRender(Entity entity, double x, double y, double z, float f, float partialTicks) {
+	public void doRender(EntityGhost entity, double x, double y, double z, float f, float partialTicks) {
 		EntityLivingBase deceased = ((EntityGhost)entity).getDeceasedEntity();
 		if (deceased == null)
 			return;
@@ -48,7 +44,7 @@ public class RenderGhost extends RenderLiving {
     }
 
 	@Override
-	protected ResourceLocation getEntityTexture(Entity entity) {
+	protected ResourceLocation getEntityTexture(EntityGhost entity) {
 		return null;
 	}
 }

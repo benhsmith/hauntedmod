@@ -22,7 +22,7 @@ public class EntityAIScareTheLiving extends EntityAIBase {
 		
         public boolean apply(Object entity)
         {
-        	if (entity instanceof EntityGhost) {
+        	if (entity instanceof EntityGhost && !((EntityGhost)entity).isDead) {
         		return avoid.isInstance(((EntityGhost)entity).getDeceasedEntity());
         	}
         	
@@ -45,8 +45,8 @@ public class EntityAIScareTheLiving extends EntityAIBase {
         if (closestEntity != null) {
         	Class avoidClass = ghost.getDeceasedEntity().getClass();
         	if (avoidClass.isInstance(closestEntity)) {
-	        	closestEntity.tasks.addTask(20, new EntityAIAvoidEntity((EntityCreature) closestEntity,
-	        		new AvoidPredicate(avoidClass), 60.0F, 1.5D, 2.7D));
+	        	closestEntity.tasks.addTask(20, new EntityAIAvoidEntity<EntityGhost>((EntityCreature) closestEntity,
+	        		EntityGhost.class, new AvoidPredicate(avoidClass), 60.0F, 1.5D, 2.7D));
         	}
         }
         
