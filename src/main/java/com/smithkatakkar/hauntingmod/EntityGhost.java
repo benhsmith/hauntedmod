@@ -14,9 +14,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
-import net.minecraft.entity.ai.EntityAIBase;
-import net.minecraft.entity.ai.EntityAIWatchClosest;
-import net.minecraft.entity.ai.RandomPositionGenerator;
+import net.minecraft.entity.ai.*;
 import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -38,9 +36,9 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 		static final float minDist = 5.0f;
 		static final float walkSpeed = 2.0f;
 		EntityGhost ghost;
-		Entity follow;
+		EntityLivingBase follow;
 		
-		EntityAIFollow(EntityGhost ghost, Entity follow) {
+		EntityAIFollow(EntityGhost ghost, EntityLivingBase follow) {
 			this.ghost = ghost;
 			this.follow = follow;
 		}
@@ -49,20 +47,20 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 		public boolean shouldExecute() {
 			double dist = ghost.getPositionVector().distanceTo(follow.getPositionVector());
 			if (dist > maxDist && follow.onGround) {
-				ghost.posX = follow.posX+follow.width+2;
-				ghost.posY = follow.posY;
-				ghost.posZ = follow.posZ+follow.width+2;
-				ghost.setPosition(ghost.posX, ghost.posY, ghost.posZ);
+                ghost.posX = follow.posX + follow.width + 2;
+                ghost.posY = follow.posY;
+                ghost.posZ = follow.posZ + follow.width + 2;
+                ghost.setPosition(ghost.posX, ghost.posY, ghost.posZ);
 			} else if (dist > minDist && dist <= maxDist) {
 				return true;
 			}
-			
+
 			return false;
 		}
 		
 	    public boolean continueExecuting()
 	    {
-	        return !ghost.getNavigator().noPath() && ghost.getDistanceSqToEntity(follow) > (double)(this.maxDist * this.maxDist);
+	        return !ghost.getNavigator().noPath() && ghost.getDistanceSqToEntity(follow) > (double)(maxDist * maxDist);
 	    }
 
 	    /**
@@ -78,7 +76,6 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 	    public void resetTask()
 	    {
 	        ghost.getNavigator().clearPathEntity();
-	        //((PathNavigateGround)ghost.getNavigator()).func_179690_a(true);
 	    }
 	    
 	    public void updateTask()
@@ -91,6 +88,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 				ghost.posZ = follow.posZ+follow.width+2;
 				ghost.setPosition(ghost.posX, ghost.posY, ghost.posZ);	        	
 	        }
+
 	    }
 	}
 
@@ -112,7 +110,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 				Entity otherGhost = null;
 				for(Iterator it = entities.iterator(); it.hasNext();) {
 					 Entity entity = (Entity) it.next();
-					 if (!entity.equals(ghost)) {
+					 if (!entity.equals(ghost) && entity instanceof EntityGhost) {
 						 otherGhost = ghost;
 						 break;
 					 }
@@ -139,21 +137,35 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 	        return !ghost.getNavigator().noPath();
 		}
 	}
-	
-	public static final int ticksToExist = 20000;
+
+    private class EntityGhostAttack extends EntityAINearestAttackableTarget<EntityPlayer> {
+        public EntityGhostAttack(EntityGhost ghost) {
+            super(ghost, EntityPlayer.class, true);
+        }
+
+        public boolean shouldExecute()
+        {
+            if (taskOwner.getEntityWorld().isDaytime()) {
+                return false;
+            }
+
+            return super.shouldExecute();
+        }
+    }
+
+    public static final int ticksToExist = 20000;
 	private EntityLiving deceasedEntity;
-	UUID haunteeUUID;
-	
+	private UUID haunteeUUID;
+
 	public EntityGhost(World worldIn) {
 		super(worldIn);
         setSize(0.9F, 0.9F);
-        //noClip = true;
-        //((PathNavigateGround)this.getNavigator()).func_179690_a(true);
 
         tasks.addTask(1, new EntityAvoidOtherGhosts(this));
         tasks.addTask(3, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0f, 0.9f));
         tasks.addTask(4, new EntityAIScareTheLiving(this));
-	}
+        tasks.addTask(5, new EntityGhostAttack(this));
+    }
 
     protected void applyEntityAttributes()
     {
@@ -161,7 +173,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
         this.getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.25D);
     }
 
-    public void setHauntee(EntityLivingBase hauntee) {
+    public void setHauntee(EntityPlayer hauntee) {
 		this.setAttackTarget(hauntee);
         tasks.addTask(4, new EntityAIFollow(this, hauntee));
     }
@@ -198,20 +210,20 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 
 	public void onUpdate() {
 		super.onUpdate();
-		
+
 		if (haunteeUUID != null && getAttackTarget() == null) {
-			Entity entity = ((WorldServer)worldObj).getEntityFromUuid(haunteeUUID);
+			Entity entity =  getEntityWorld().getPlayerEntityByUUID(haunteeUUID);
 			if (entity != null) {
-				setHauntee((EntityLivingBase)entity);
+				setHauntee((EntityPlayer)entity);
 			}
 		}
-		
+
 		deceasedEntity.onUpdate();
-		
-		//deceasedEntity.motionY *= 0.6D;
-		//motionY *= .06D;
-				
-    	if (ticksExisted > ticksToExist)
+
+        deceasedEntity.motionY *= 0.6D;
+        motionY *= .06D;
+
+        if (ticksExisted > ticksToExist)
     		setDead();    
     	
     	isJumping = false;
@@ -246,10 +258,8 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
     	deceasedEntity.setRotationYawHead(rotation);
     }
 
-    public void writeEntityToNBT(NBTTagCompound tagCompound)
+    public NBTTagCompound writeToNBT(NBTTagCompound tagCompound)
     {
-        super.writeEntityToNBT(tagCompound);
-
         if (getAttackTarget() != null) {
         	tagCompound.setString("TargetUUID", getAttackTarget().getUniqueID().toString());
 	    } else {	
@@ -259,18 +269,14 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
         if (deceasedEntity != null) {
         	tagCompound.setString("LivingClass", deceasedEntity.getClass().getCanonicalName());        	
         }
+
+        return super.writeToNBT(tagCompound);
     }
 
-    public void readEntityFromNBT(NBTTagCompound tagCompound)
+    public void readFromNBT(NBTTagCompound tagCompound)
     {
-        super.readEntityFromNBT(tagCompound);
-        
         haunteeUUID = UUID.fromString(tagCompound.getString("TargetUUID"));
-        
-        if (haunteeUUID == null) {
-        	setDead();
-        }
-        
+
         if (tagCompound.hasKey("LivingClass")) {
         	String className = tagCompound.getString("LivingClass");
         	try {
@@ -279,17 +285,12 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 				FMLLog.info(className + " - failed to reload ghost class - " + e.getMessage());
 			} 
         }
+
+        super.readFromNBT(tagCompound);
     }
 
 	@Override
 	public void writeSpawnData(ByteBuf additionalData) {
-		/*
-		if (getAttackTarget() != null) {
-			additionalData.writeInt(getAttackTarget().getEntityId());
-		} else {
-			additionalData.writeInt(0);
-		}
-		*/
         ByteBuf tmpBuf = Unpooled.buffer();
         PacketBuffer pb = new PacketBuffer(tmpBuf);
         pb.writeString(deceasedEntity.getClass().getCanonicalName());
@@ -298,13 +299,6 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 
 	@Override
 	public void readSpawnData(ByteBuf additionalData) {
-		/*
-		EntityLivingBase target = (EntityLivingBase) worldObj.getEntityByID(additionalData.readInt());
-        if (target == null) {
-        	setDead();
-        } else {
-        }
-		 */
         String className = new PacketBuffer(additionalData).readStringFromBuffer(additionalData.readableBytes());
     	try {
     		setDeceasedClass((Class<? extends EntityLiving>)Class.forName(className));
