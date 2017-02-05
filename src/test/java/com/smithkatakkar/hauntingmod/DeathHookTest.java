@@ -1,30 +1,29 @@
 package com.smithkatakkar.hauntingmod;
 
-import static org.junit.Assert.*;
-
 import java.lang.reflect.InvocationTargetException;
 
+import com.smithkatakkar.hauntingmod.testrunner.MinecraftTestRunner;
 import mockit.Expectations;
 import mockit.Mocked;
 import mockit.Verifications;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.entity.passive.EntityPig;
-import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(MinecraftTestRunner.class)
 public class DeathHookTest {
 
     @Mocked World world;
     @Mocked EntityPlayer player;
     @Mocked EntityPig pig;
     @Mocked EntityGhost ghost;
-	   
-	@Test
+    @Test
 	public void testEntityDeath() throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		DamageSource source = DamageSource.causePlayerDamage(player);
 		
