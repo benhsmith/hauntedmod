@@ -9,6 +9,8 @@ import java.lang.reflect.Method;
 
 /**
  * Created by ben on 01/02/17.
+ *
+ * Inspired by https://github.com/vorburger/SwissKnightMinecraft
  */
 public class MinecraftTestRunner extends BlockJUnit4ClassRunner {
 
@@ -43,7 +45,6 @@ public class MinecraftTestRunner extends BlockJUnit4ClassRunner {
             Class<?> testClassFromMinecraftClassLoader = classLoader.loadClass(testClass.getName());
             return super.createTestClass(testClassFromMinecraftClassLoader);
         } catch (ClassNotFoundException e) {
-            // This really should never happen..
             throw new RuntimeException(e);
         }
     }

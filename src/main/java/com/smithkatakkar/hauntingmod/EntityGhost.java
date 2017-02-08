@@ -120,7 +120,7 @@ public class EntityGhost extends EntityMob implements IEntityAdditionalSpawnData
 	            if (vec3 != null)
 	            {
 	                entityPathEntity = ghost.getNavigator().getPathToXYZ(vec3.xCoord, vec3.yCoord, vec3.zCoord);
-	                return entityPathEntity == null ? false : entityPathEntity.isDestinationSame(vec3);
+	                return entityPathEntity != null;
 	            }            
 			}
 			
