@@ -13,44 +13,44 @@ import net.minecraft.util.DamageSource;
 
 public class EntityAIScareTheLiving extends EntityAIBase {
 
-	class AvoidPredicate implements Predicate {
-		Class avoid;
-		
-		public AvoidPredicate(Class class1) {
-			this.avoid = class1;
-		}
-		
+    class AvoidPredicate implements Predicate {
+        Class avoid;
+
+        public AvoidPredicate(Class class1) {
+            this.avoid = class1;
+        }
+
         public boolean apply(Object entity)
         {
-        	if (entity instanceof EntityGhost && !((EntityGhost)entity).isDead) {
-        		return avoid.isInstance(((EntityGhost)entity).getDeceasedEntity());
-        	}
-        	
-        	return false;
+            if (entity instanceof EntityGhost && !((EntityGhost)entity).isDead) {
+                return avoid.isInstance(((EntityGhost)entity).getDeceasedEntity());
+            }
+
+            return false;
         }		
-	}
-	
-	private EntityGhost ghost;
-	
-	EntityAIScareTheLiving(EntityGhost ghost) {
-		this.ghost = ghost;
-	}
-	
-	@Override
-	public boolean shouldExecute() {
+    }
+
+    private EntityGhost ghost;
+
+    EntityAIScareTheLiving(EntityGhost ghost) {
+        this.ghost = ghost;
+    }
+
+    @Override
+    public boolean shouldExecute() {
         EntityLiving closestEntity = (EntityLiving)this.ghost.worldObj.findNearestEntityWithinAABB(
-        	ghost.getDeceasedEntity().getClass(), ghost.getEntityBoundingBox().expand(
-        		60.0D, 60.0D, 10.0D), ghost);
+            ghost.getDeceasedEntity().getClass(), ghost.getEntityBoundingBox().expand(
+                60.0D, 60.0D, 10.0D), ghost);
         
         if (closestEntity != null) {
-        	Class avoidClass = ghost.getDeceasedEntity().getClass();
-        	if (avoidClass.isInstance(closestEntity)) {
-	        	closestEntity.tasks.addTask(20, new EntityAIAvoidEntity<EntityGhost>((EntityCreature) closestEntity,
-	        		EntityGhost.class, new AvoidPredicate(avoidClass), 60.0F, 1.5D, 2.7D));
-        	}
+            Class avoidClass = ghost.getDeceasedEntity().getClass();
+            if (avoidClass.isInstance(closestEntity)) {
+                closestEntity.tasks.addTask(20, new EntityAIAvoidEntity<EntityGhost>((EntityCreature) closestEntity,
+                    EntityGhost.class, new AvoidPredicate(avoidClass), 60.0F, 1.5D, 2.7D));
+            }
         }
         
         return false;
-	}
+    }
 
 }

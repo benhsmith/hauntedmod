@@ -18,9 +18,9 @@ public class HauntingMod
 
     public static Item itemGhostGun;
 
-	@SidedProxy(clientSide="com.smithkatakkar.hauntingmod.CombinedClientProxy",
+    @SidedProxy(clientSide="com.smithkatakkar.hauntingmod.CombinedClientProxy",
                 serverSide="com.smithkatakkar.hauntingmod.DedicatedServerProxy")
-	public static CommonProxy proxy;
+    public static CommonProxy proxy;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent e) {

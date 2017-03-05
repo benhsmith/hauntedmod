@@ -11,25 +11,25 @@ import net.minecraftforge.fml.common.FMLLog;
 
 public class DeathHook {
 
-	@SubscribeEvent
-	public void entityDeath(LivingDeathEvent event) {
-		if(event.getSource().getEntity() instanceof EntityPlayer
-			&& (event.getEntity().isCreatureType(EnumCreatureType.CREATURE, false)
-				|| event.getEntity() instanceof EntityVillager)) {
+    @SubscribeEvent
+    public void entityDeath(LivingDeathEvent event) {
+        if(event.getSource().getEntity() instanceof EntityPlayer
+            && (event.getEntity().isCreatureType(EnumCreatureType.CREATURE, false)
+                || event.getEntity() instanceof EntityVillager)) {
 
-			EntityPlayer player = (EntityPlayer) event.getSource().getEntity();
-			World world = player.worldObj;
+            EntityPlayer player = (EntityPlayer) event.getSource().getEntity();
+            World world = player.worldObj;
 
-			EntityGhost ghost;
-			try {
-				ghost = new EntityGhost(world);
-				ghost.setDeceasedClass((Class<? extends EntityLiving>)event.getEntity().getClass());
-				ghost.setPosition(event.getEntity().posX, event.getEntity().posY, event.getEntity().posZ);
-				ghost.setHauntee(player);
-				world.spawnEntityInWorld(ghost);
-			} catch (Exception e) {
-				FMLLog.info(event.getEntity().getClass() + " - failed to generate ghost - " + e.getMessage());
-			}
-		}
-	}
+            EntityGhost ghost;
+            try {
+                ghost = new EntityGhost(world);
+                ghost.setDeceasedClass((Class<? extends EntityLiving>)event.getEntity().getClass());
+                ghost.setPosition(event.getEntity().posX, event.getEntity().posY, event.getEntity().posZ);
+                ghost.setHauntee(player);
+                world.spawnEntityInWorld(ghost);
+            } catch (Exception e) {
+                FMLLog.info(event.getEntity().getClass() + " - failed to generate ghost - " + e.getMessage());
+            }
+        }
+    }
 }

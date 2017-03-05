@@ -13,19 +13,19 @@ import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
 public class CombinedClientProxy implements CommonProxy {
-	@Override
+    @Override
     public void preInit() {
-		RenderingRegistry.registerEntityRenderingHandler(EntityGhost.class,
-				new IRenderFactory<EntityGhost>() {
-					@Override
-					public Render createRenderFor(RenderManager manager) {
-						return new RenderGhost(manager, new ModelPig(), 0.7F);
-					}
-				}
-		);
-	}
+        RenderingRegistry.registerEntityRenderingHandler(EntityGhost.class,
+                new IRenderFactory<EntityGhost>() {
+                    @Override
+                    public Render createRenderFor(RenderManager manager) {
+                        return new RenderGhost(manager, new ModelPig(), 0.7F);
+                    }
+                }
+        );
+    }
 
-	@Override
-	public void init_resources() {
-	}
+    @Override
+    public void init_resources() {
+    }
 }
